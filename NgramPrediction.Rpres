@@ -24,7 +24,7 @@ Prediction accuracy and data size
 ========================================================
 
 - Benchmark is done using contribution from [dsci-benchmark](https://github.com/hfoffani/dsci-benchmark)
-- Benchmark is done on a held off test set based on twitter and news corpus. Established accuracy of the model is 13%
+- Benchmark is done on a held off test set based on twitter and news corpus. Established accuracy of the model is 16.84%
 - Data size of Ngram model is 11MB in size only, enable to run in small container in Shiny App
 - Dictionary pruning on the Ngram is applied to lower the perplexity of each Ngram by only keeping most probable N words for each term.
 - Applying dictionary pruning enable for higher percentage corpus learning and successfully trim down the model size with compression rate `r 230/11`.
