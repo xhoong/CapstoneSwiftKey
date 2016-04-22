@@ -1,0 +1,210 @@
+---
+title: "SwiftKey Capstone Project Milestone Report"
+author: '@xhoong'
+output: html_document
+---
+
+## Executive Summary
+
+In this report we will explore the corpus provided by HC Corpora using US English language sets and form N-Gram tokenizer to setup for follow on word prediction model to predict next entry words as part of SwiftKey text prediction word entry. The provided corpus are for online publication taken from Twitter, blog post and news posting, these sets of corpus is referenced as generic dictionary for english writing population.
+
+In the report we will explore each 1 word term and 2 words term occurence in the given corpus, using word cloud to visualized the common words among all english sets, and also plotting each corpus from Twitter, blogs and news site separately. 
+
+From the word cloud, the common 1 word term (Unigram) is mainly form by stop words, in frequency bar chart on unigram vs 2 word term (Bigram), we notice that the common sets of word greatly differ. This highlighted that we need higher term N-Gram to capture more uniqueness in the corpus that we have.
+
+## Loading Datasets, Corpus
+
+The data is from a corpus called HC Corpora [HC Corpora](http://www.corpora.heliohost.org) 
+
+```{r load-data, cache=TRUE, message=FALSE}
+require(tm)
+require(wordcloud)
+## Getting the Corpus
+corpusURL<-"https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+fileName<-"Coursera-SwiftKey.zip"
+extractPath<-"final"
+
+if (!file.exists(fileName))
+    download.file(corpusURL, fileName, method="curl", mode="wb")
+
+if (!file.exists(fileName))
+    stop(fileName, " not found")
+
+if (!dir.exists(extractPath))
+  unzip(fileName)
+
+twitter <- readLines("./final/en_US/en_US.twitter.txt", encoding = "UTF-8", skipNul = TRUE, warn=F)
+blogs <- readLines("./final/en_US/en_US.blogs.txt", encoding = "UTF-8", skipNul = TRUE, warn=F)
+news <- readLines("./final/en_US/en_US.news.txt", encoding = "UTF-8", skipNul = TRUE, warn = F)
+
+## Remove special character in file to enable tm package to process
+twitter <- iconv(twitter, 'UTF-8', 'ASCII', "byte")
+blogs <- iconv(blogs, 'UTF-8', 'ASCII', "byte")
+news <- iconv(news, 'UTF-8', 'ASCII', "byte")
+```
+
+File statistics for each file, *en_US.twitter.txt*, *en_US.blogs.txt* and *en_US.news.txt*
+
+```{r ref.label=c('file-stats'), echo=FALSE, message=FALSE}
+```
+```{r get-file-stats, cache=TRUE, message=FALSE}
+twitterStats <- fileStats("./final/en_US/en_US.twitter.txt", twitter)
+blogsStats <- fileStats("./final/en_US/en_US.blogs.txt", blogs)
+newsStats <- fileStats("./final/en_US/en_US.news.txt", news)
+
+printStats(list(twitterStats, blogsStats, newsStats))
+```
+
+
+## Exploratory Data
+
+Sampling on the corpus and basic data cleaning and normalization via:
+
+1. stemming, 
+2. standardizing character case to lower case 
+3. stripping extra white space
+4. removing punctuation and numbers
+5. finally removing profanity words from http://www.cs.cmu.edu/~biglou/resources/bad-words.txt 
+
+```{r ref.label=c('clean-corpus'), echo=FALSE, message=FALSE}
+```
+```{r sampling, message=FALSE}
+percent<-0.01
+twitSmpl <- sample(twitter, percent*length(twitter))
+blogSmpl <- sample(blogs, percent*length(blogs))
+newsSmpl <- sample(news, percent*length(news))
+# twitSmpl <- sample(twitter, 1000)
+# blogSmpl <- sample(blogs, 1000)
+# newsSmpl <- sample(news, 1000)
+allSmpl <- c(twitSmpl, blogSmpl, newsSmpl)
+allSmpl <- sample(allSmpl, percent*length(allSmpl))
+twitCorpus <- cleanText(twitSmpl)
+blogCorpus <- cleanText(blogSmpl)
+newsCorpus <- cleanText(newsSmpl)
+allCorpus <- cleanText(allSmpl)
+```
+
+Building 1 term N-Gram or Unigram, and drawing a word cloud to visualize the most used words.
+
+```{r ref.label=c('draw-wordcloud'), echo=FALSE, message=FALSE}
+```
+```{r wordcloud, message=FALSE}
+twitTermFreq<-ngramToken(twitCorpus, ngram=1)
+blogsTermFreq<-ngramToken(blogCorpus, ngram=1)
+newsTermFreq<-ngramToken(newsCorpus, ngram=1)
+allTermWord<-ngramToken(allCorpus)
+
+drawWordcloud(allTermWord)
+```
+
+Plotting Unigram frequency bar chart order by most frequent term. X-axis are shared to see if term are overlap between twitter, blogs and news corpus.
+
+```{r freq-bar-chart-ngram1, message=FALSE}
+twitTermFreq$corpus<-"twitter"
+blogsTermFreq$corpus<-"blogs"
+newsTermFreq$corpus<-"news"
+allTermFreq<-rbind(twitTermFreq, blogsTermFreq, newsTermFreq)
+drawFreqBar(allTermFreq, "Unigram Terms Frequency")
+```
+
+Plotting frequence bar graph on Bi-gram.
+
+```{r freq-bar-chart-ngram2, message=FALSE}
+twitTermFreq<-ngramToken(twitCorpus, ngram=2)
+blogsTermFreq<-ngramToken(blogCorpus, ngram=2)
+newsTermFreq<-ngramToken(newsCorpus, ngram=2)
+
+twitTermFreq$corpus<-"twitter"
+blogsTermFreq$corpus<-"blogs"
+newsTermFreq$corpus<-"news"
+allTermFreq<-rbind(twitTermFreq, blogsTermFreq, newsTermFreq)
+drawFreqBar(allTermFreq, "Bi-gram Terms Frequency")
+
+```
+
+## Next steps
+
+For next steps, the study will use the corpus to build a predictive model using N-Gram model together with backoff model when there's no match in from the dictionary that we had pre-processed. The exploratory taken in this report is also with much smaller data sample, and for more accurate prediction, the sample size needs to increase and to research on optimizing the model so that it can be hosted via Shiny App.
+
+### Appendix: Codes
+
+Function for printing file stats:
+```{r file-stats, message=FALSE}
+fileStats <- function(filename, dataset) {
+  fileSize <- file.info(filename)$size
+  wordCount <- sum(sapply(gregexpr("\\S+", dataset), length))
+  lineCount <- length(dataset)
+  longestLineChar <-longestLine(dataset)
+  list(fileSize=fileSize, wordCount=wordCount, lineCount=lineCount, longestLineCharCount=longestLineChar)
+}
+longestLine <-function(dataset) {
+  charCountPerLine <-nchar(dataset)
+  tmax<-which.max(charCountPerLine)
+  nchar(dataset[tmax])
+}
+printStats <- function(stats) {
+  require(knitr)
+  statDF <- sapply(stats, function(s) {s})
+    
+  colnames(statDF) <- c("Twitter", "Blogs", "News")
+  row.names(statDF) <- c("File Size", "Word Count", "Line Count", "Longest Line Character Count")
+  kable(statDF)
+}
+```
+
+Data cleaning and normalization functions:
+```{r clean-corpus, message=FALSE}
+cleanText <- function(textVector){
+  require(tm)
+  require(SnowballC)
+  profanity<-VectorSource(readLines("./final/en_US/bad-words.txt"))
+  corpus <- Corpus(VectorSource(textVector))
+  corpus <- tm_map(corpus, removePunctuation)
+  corpus <- tm_map(corpus, removeNumbers)
+  corpus <- tm_map(corpus, tolower)
+  corpus <- tm_map(corpus, stemDocument, lazy=TRUE)
+  #corpus <- tm_map(corpus, removeWords, stopwords("english"))
+  corpus <- tm_map(corpus, removeWords, profanity$content)
+  corpus <- tm_map(corpus, stripWhitespace)
+  corpus <- tm_map(corpus, PlainTextDocument)
+  corpus
+}
+```
+
+Tokenization and Plotting functions:
+```{r draw-wordcloud, message=FALSE}
+drawWordcloud <-function(df, n=100) {
+  require(wordcloud)
+  
+  # n<-min(n, length((df)))
+  df <- df[with(df, order(-freq, term)),]
+  wordcloud(df$term[1:n], df$freq[1:n], random.order = F, rot.per = 0.35, use.r.layout = F,
+            min.freq=3, colors = brewer.pal(8, "Dark2"))
+}
+
+ngramToken <-function(c, ngram=1) {
+  require(tm)
+  require(RWeka)
+  # options(mc.cores=1)
+  corpusDTM<-TermDocumentMatrix(c, control=list(tokenize=function(x){
+    RWeka::NGramTokenizer(x, Weka_control(min = ngram, max = ngram))}))
+  tf<-findFreqTerms(corpusDTM, lowfreq = ngram)
+  tf<-sort(rowSums(as.matrix(corpusDTM[tf,])), decreasing = TRUE)
+  words<-names(tf)
+  data.frame(term=words, freq=tf)
+}
+
+drawFreqBar <- function(termFreqDF, title, n=15) {
+  require(ggplot2)
+  require(plyr)
+  termFreqDF$corpus <- as.factor(termFreqDF$corpus)
+  termFreqDF<-ddply(termFreqDF, "corpus", function(x) head(x[order(x$freq, decreasing = TRUE) , ], n))
+  ggplot(termFreqDF, aes(x=reorder(term,-freq), y=freq)) +
+    geom_bar(stat="Identity", fill="blue") +
+    geom_text(aes(label=freq), vjust = -0.5) +
+    ggtitle(title) +
+    ylab("Frequency") +
+    xlab("Term") + facet_grid(.~corpus)
+}
+```
+

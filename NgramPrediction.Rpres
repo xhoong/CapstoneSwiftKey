@@ -1,0 +1,38 @@
+Ngram Word Prediction with Back-off and Interpolation
+========================================================
+author: @xhoong
+date: Apr 2016
+
+Capstone Project Overview
+========================================================
+
+- Project objective is to predict next word from a sentense within the provided corpus using Natural Language Processing methods.
+- English corpus from [HC Corpora](http://www.corpora.heliohost.org) with more than 100 millions word count and 4 millions unique sentence (document) is used as base for word term dictionary.
+- To able to run in small container with limited resources, sampling of 20% from corpus and using tri-gram to predict most likely next word using Markov Chain model.
+- Applying NGRAM backoff algorithm with generalized linear model interpolation to choose the most probable words from the learned Ngram model provide normalized prediction with higher accuracy.
+
+Algorithm and Corpus Learning
+========================================================
+
+- Normalized, tokenized, calculate probability from corpus, R parallel was used to parallelized the corpus processing and term probability calculation shortens the model development time.
+- Algorithm choosen is stupid backoff method together with generalized linear model interpolation. 
+- Generalized linear model interpolation apply smoothing of term probability and using all 3 Ngram probability to determine the most probable word, where $MLE(w)=\lambda_1(4gram)+\lambda_2(3gram)+\lambda_3(2gram)+\lambda_4(unigram)$
+- Appliying GLM interpolation able to boost prediction accuracy as it smooth the probability from all 4 Ngram.
+- Lambda is learned from seperate held off training corpus using Expectation-Maximization algorithm.
+
+Prediction accuracy and data size
+========================================================
+
+- Benchmark is done using contribution from [dsci-benchmark](https://github.com/hfoffani/dsci-benchmark)
+- Benchmark is done on a held off test set based on twitter and news corpus. Established accuracy of the model is 13%
+- Data size of Ngram model is 11MB in size only, enable to run in small container in Shiny App
+- Dictionary pruning on the Ngram is applied to lower the perplexity of each Ngram by only keeping most probable N words for each term.
+- Applying dictionary pruning enable for higher percentage corpus learning and successfully trim down the model size with compression rate `r 230/11`.
+
+Shiny App
+========================================================
+
+- The Shiny App provide a platform to run the NLP model, sentence are keyed in from the textarea input on top left
+- The slider show how many maximum output you want to show up to maximum of 10 words (if found).
+- Table on right show the full Ngram matched, the term frequency, term probability using Markov Chain and the generalized linear model term probability for all Ngram.
+- You may notice that even the term frequency is high for the chosen Ngram, highest probable word is derived from GLM probability instead.
