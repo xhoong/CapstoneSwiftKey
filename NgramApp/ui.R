@@ -40,7 +40,10 @@ shinyUI(fluidPage(theme = "bootstrap.css",#get more bootstrap themes from http:/
                            )
                          )),style = "color:blue")
                         ),
-                tabPanel("Source")
+                tabPanel("Source", 
+                         h4("Github"),
+                         p("Following is the source code for building the Ngram and the Shiny App in Github"),
+                         a(href="https://github.com/xhoong/CapstoneSwiftKey/tree/master/NgramApp", "Capstone Github"))
                
                 )
                
